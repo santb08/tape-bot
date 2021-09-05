@@ -1,0 +1,44 @@
+{
+    "prefix": "-",
+    "commands": [
+        {
+            "commands": [
+                "play",
+                "p"
+            ],
+            "id": "play",
+            "function": "playSong"
+        },
+        {
+            "commands": [
+                "queue",
+                "q"
+            ],
+            "id": "play",
+            "function": "queue"
+        },
+        {
+            "commands": [
+                "leave",
+                "l"
+            ],
+            "id": "play",
+            "function": "leave"
+        },
+        {
+            "commands": [
+                "skip",
+                "s"
+            ],
+            "id": "play",
+            "function": "skip"
+        },
+        {
+            "commands": [
+                "stop"
+            ],
+            "id": "play",
+            "function": "stop"
+        }
+    ]
+}
