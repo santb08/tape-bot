@@ -1,9 +1,10 @@
 // @packages
+const Bot = require('./bot');
 const { Client, Intents } = require('discord.js');
 const { settings } = require('./config');
-const Subscription = require('./bot');
-const { entersState } = require('@discordjs/voice');
 
+// @constants
+const bot = new Bot();
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
@@ -12,7 +13,6 @@ const client = new Client({
     ]
 });
 
-const bot = new Subscription();
 
 client.once('ready', () => {
     bot.init(client);
@@ -37,7 +37,7 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(settings.prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
 
-    if (command === 'play') {
+    if (command === 'play' || command === 'p') {
         try {
             const argSongName = args.join(' ');
 
@@ -46,9 +46,25 @@ client.on('messageCreate', async message => {
             }
 
             const song = await bot.addSong(message.guildId, null, argSongName)
-            bot.joinVoiceChannel(voiceChannel); 
-                
+            bot.joinVoiceChannel(voiceChannel);
+
             message.reply(`Added **${song.title}** to the queue!`);
+        } catch (error) {
+            message.reply(error.message);
+        }
+    }
+
+    if (command === 'skip') {
+        try {
+            bot.skipSong(message.guildId);
+        } catch (error) {
+            message.reply(error.message);
+        }
+    }
+
+    if (command == 'queue' || command == 'q') {
+        try {
+            message.reply(bot.getSongsQueue(message.guildId));
         } catch (error) {
             message.reply(error.message);
         }
