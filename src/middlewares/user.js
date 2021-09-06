@@ -1,5 +1,3 @@
-const userHasPermissions = (user) => {
-    return true;
-};
+const userHasPermissions = (user) => true;
 
 module.exports = userHasPermissions;
