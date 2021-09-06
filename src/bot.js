@@ -1,8 +1,8 @@
 // @packages
 const ytsr  = require('ytsr');
-const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
-const createDiscordJSAdapter = require('./adapters');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus, AudioPlayer, AudioResource, createAudioResource } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
+const { VoiceChannel } = require('discord.js');
 
 // @constants
 const defaultQueue = {
@@ -33,7 +33,7 @@ class Bot {
      * @param {String} userId
      * @param {String} song
      */
-    async addSong(voiceChannel, guildId, userId, songName) {
+    async addSong(guildId, userId, songName) {
         // TODO: Check same voiceChannel in the actual queue
         const queue = this.getQueue(guildId);
         const { items } = await ytsr(songName, { limit: 1 });
@@ -69,46 +69,90 @@ class Bot {
             });
         }
 
-        const connection = joinVoiceChannel({
+        return song;
+    }
+
+    /**
+     * @param {String} guildId 
+     * @param {VoiceChannel} voiceChannel 
+     * @returns 
+     */
+    async joinVoiceChannel(voiceChannel) {
+        const queue = this.getQueue(voiceChannel.guild.id);
+        const voiceConnection = joinVoiceChannel({
             channelId: voiceChannel.id,
-            guildId: guildId,
-            adapterCreator: createDiscordJSAdapter(voiceChannel),
+            guildId: voiceChannel.guild.id,
+            adapterCreator: voiceChannel.guild.voiceAdapterCreator
         });
-
-        console.log('trying');
-
+        queue.connection = voiceConnection;
+        this.serverQueues.set(voiceChannel.guild.id, queue);
+        
         try {
-            console.log('ola');
-            queue.connection = await entersState(connection, VoiceConnectionStatus.Ready, 30e3);
-            // this.play(guildId, queue.songs[0]);
-            return song;
+            entersState(
+                voiceConnection,
+                VoiceConnectionStatus.Ready,
+                20e3
+            );
         } catch (error) {
-            connection.destroy();
             throw error;
         }
 
+        try {
+            voiceConnection.on('stateChange', async (oldState, newState) => {
+                try {
+                    console.log('Connection state change', oldState.status, newState.status);
+            //         // await entersState(
+            //         //     voiceConnection,
+            //         //     VoiceConnectionStatus.Ready,
+            //         //     5_000
+            //         // );
+                    } catch (error) {
+                        console.error('error', error);
+            //         // voiceConnection.destroy();-
+                    }
+            })
+
+
+            // await entersState(
+            //     voiceConnection,
+            //     VoiceConnectionStatus.Ready,
+            //     5_000
+            // );
+
+            this.play(voiceChannel.guild.id, queue.songs[0]);
+
+            // voiceConnection.on('error', console.warn);
+            return voiceConnection;
+        } catch (error) {
+            voiceConnection.destroy();
+            throw error;
+        }
     }
 
-    play(guildId, song) {
-        const serverQueue = queue.get(guildId);
-        console.log('playing');
+    async play(guildId, song) {
+        const serverQueue = this.getQueue(guildId);
+
         if (!song) {
           serverQueue.voiceChannel.leave();
           queue.delete(guildId);
-          return;
+          throw Error('There\'s nothing else to play');
         }
-
-        console.log('ola');
-        const dispatcher = serverQueue.connection
-          .play(ytdl(song.url))
-          .on('finish', () => {
-              console.log('a');
-            serverQueue.songs.shift();
-            play(guildId, serverQueue.songs[0]);
-          })
-          .on('error', error => console.error(error));
-        dispatcher.setVolumeLogarithmic(1);
-        serverQueue.textChannel.send(`Start playing: **${song.title}**`);
+        
+        const audioPlayer = new AudioPlayer();
+        const stream = ytdl(song.url, { filter: 'audioonly' });
+        audioPlayer.play(
+            createAudioResource(stream)
+        );
+        console.log('ola', serverQueue);
+        serverQueue.connection.subscribe(audioPlayer);
+            // .on('finish', () => {
+            //     console.log('a');
+            //     serverQueue.songs.shift();
+            //     play(guildId, serverQueue.songs[0]);
+            // })
+            // .on('error', error => console.error(error));
+        // dispatcher.setVolumeLogarithmic(1);
+        // serverQueue.textChannel.send(`Start playing: **${song.title}**`);
     }
 
     removeFromQueue(user, song) {

@@ -1,17 +1,18 @@
 // @packages
 const { Client, Intents } = require('discord.js');
 const { settings } = require('./config');
-const Bot = require('./bot');
+const Subscription = require('./bot');
+const { entersState } = require('@discordjs/voice');
 
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES
-    ],
-    partials: ['MESSAGE', 'CHANNEL', 'REACTION']
+        Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.GUILD_VOICE_STATES
+    ]
 });
 
-const bot = new Bot();
+const bot = new Subscription();
 
 client.once('ready', () => {
     bot.init(client);
@@ -44,7 +45,9 @@ client.on('messageCreate', async message => {
                 return message.reply('You need to provide a song name!');
             }
 
-            const song = await bot.addSong(voiceChannel, message.guildId, null, argSongName);
+            const song = await bot.addSong(message.guildId, null, argSongName)
+            bot.joinVoiceChannel(voiceChannel); 
+                
             message.reply(`Added **${song.title}** to the queue!`);
         } catch (error) {
             message.reply(error.message);
@@ -61,4 +64,4 @@ client.on('messageCreate', async message => {
 //     process.on(eventType, cleanUpServer.bind(null, eventType));
 // });
 
-client.login('ODgzOTAwNzA5MTg2MTg3MjY0.YTQqrw.SGsNx1g31G_XTkH50cO0Sv1uTR4');
+client.login('ODgzOTAwNzA5MTg2MTg3MjY0.YTQqrw.3KVsGvWG8TnGiuyhijgIg2bmlCA');
