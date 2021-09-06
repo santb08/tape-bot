@@ -1,13 +1,14 @@
 // @packages
 const ytsr  = require('ytsr');
-const { joinVoiceChannel, entersState, VoiceConnectionStatus, AudioPlayer, AudioResource, createAudioResource } = require('@discordjs/voice');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus, AudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const { VoiceChannel } = require('discord.js');
 
 // @constants
 const defaultQueue = {
     songs: [],
-    voiceChannel: null
+    voiceChannel: null,
+    audioPlayer: null
 };
 
 class Bot {
@@ -65,7 +66,7 @@ class Bot {
         } else {
             queue.songs.push({
                 userId,
-                song: song
+                ...song
             });
         }
 
@@ -100,27 +101,27 @@ class Bot {
         try {
             voiceConnection.on('stateChange', async (oldState, newState) => {
                 try {
-                    console.log('Connection state change', oldState.status, newState.status);
-            //         // await entersState(
-            //         //     voiceConnection,
-            //         //     VoiceConnectionStatus.Ready,
-            //         //     5_000
-            //         // );
+                    if (newState.status === VoiceConnectionStatus.Ready) {
+                        console.log('Bot connected');
+                    }
+                    // await entersState(
+                    //     voiceConnection,
+                    //     VoiceConnectionStatus.Ready,
+                    //     5_000
+                    // );
                     } catch (error) {
                         console.error('error', error);
-            //         // voiceConnection.destroy();-
+                    // voiceConnection.destroy();-
                     }
             })
 
+            this.play(voiceChannel.guildId, queue.songs[0]);
 
             // await entersState(
             //     voiceConnection,
             //     VoiceConnectionStatus.Ready,
             //     5_000
             // );
-
-            this.play(voiceChannel.guild.id, queue.songs[0]);
-
             // voiceConnection.on('error', console.warn);
             return voiceConnection;
         } catch (error) {
@@ -138,13 +139,40 @@ class Bot {
           throw Error('There\'s nothing else to play');
         }
         
+        if (serverQueue.audioPlayer?.state.status === AudioPlayerStatus.Playing && serverQueue.songs.length) {
+            return;
+        }
+
         const audioPlayer = new AudioPlayer();
-        const stream = ytdl(song.url, { filter: 'audioonly' });
-        audioPlayer.play(
-            createAudioResource(stream)
-        );
-        console.log('ola', serverQueue);
         serverQueue.connection.subscribe(audioPlayer);
+        
+        const playSong = (songUrl) => {
+            console.log('searching', songUrl)
+            const stream = ytdl(songUrl, { filter: 'audioonly' });
+            const songResource = createAudioResource(stream);
+            audioPlayer.play(songResource);
+        };
+
+        playSong(song.url);
+
+        this.updateQueue(
+            guildId,
+            { audioPlayer }
+        );
+
+        audioPlayer.on('stateChange', (oldState, newState) => {
+            if (newState.status === AudioPlayerStatus.Idle && 
+                oldState.status === AudioPlayerStatus.Playing) {
+                    const newSongs = serverQueue.songs.slice(1); 
+                    console.log('New songs', newSongs);
+                    this.updateQueue(guildId, { songs: newSongs });
+                    if (newSongs.length) {
+                        console.log('xd', newSongs[0]);
+                        playSong(newSongs[0].url);
+                    }
+            }
+        }); 
+ 
             // .on('finish', () => {
             //     console.log('a');
             //     serverQueue.songs.shift();
@@ -157,6 +185,17 @@ class Bot {
 
     removeFromQueue(user, song) {
         this.serverQueues.delete(song);
+    }
+
+    updateQueue(guildId, props = {}) {
+        const queue = this.serverQueues.get(guildId);
+        this.serverQueues.set(
+            guildId,
+            {
+                ...queue,
+                ...props
+            }
+        )
     }
 }
 
