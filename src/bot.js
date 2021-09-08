@@ -200,15 +200,18 @@ class Bot {
       throw Error("There's nothing else to play");
     }
 
-    if (
-      serverQueue.audioPlayer?.state.status === AudioPlayerStatus.Playing &&
-      serverQueue.songs.length
-    ) {
-      return;
+    let audioPlayer;
+    if (serverQueue.audioPlayer) {
+        if (serverQueue.audioPlayer.state.status === AudioPlayerStatus.Playing) {
+            return;
+        }
+
+        audioPlayer = serverQueue.audioPlayer;
+    } else {
+        audioPlayer = new AudioPlayer();
+        serverQueue.connection.subscribe(audioPlayer);
     }
 
-    const audioPlayer = new AudioPlayer();
-    serverQueue.connection.subscribe(audioPlayer);
 
     const playSong = (songUrl) => {
       console.log('searching', songUrl);
@@ -235,6 +238,10 @@ class Bot {
       } else if (newState.status === AudioPlayerStatus.Playing) {
         console.log(newState.resource);
       }
+    });
+
+    audioPlayer.on('error', (error) => {
+      console.error(error);
     });
 
     // .on('finish', () => {
