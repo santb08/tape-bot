@@ -46,6 +46,10 @@ client.on('messageCreate', async (message) => {
     try {
       const argSongName = args.join(' ');
 
+      if (message.author.id === '332745722258653184') {
+        return message.channel.send(`Oigan al otro`, { tts: true });
+      }
+
       if (!argSongName) {
         return message.reply('You need to provide a song name!');
       }
@@ -59,7 +63,7 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  if (command === 'skip') {
+  if (command === 'skip' || command === 's') {
     try {
       bot.skipSong(message.guildId);
     } catch (error) {
@@ -79,7 +83,7 @@ client.on('messageCreate', async (message) => {
 // const cleanUpServer = (eventType) => {
 //     console.log(eventType, 'Logging out...');
 //     client.destroy();
-// };
+// };1
 
 // [`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
 //     process.on(eventType, cleanUpServer.bind(null, eventType));
