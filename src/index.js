@@ -46,7 +46,7 @@ client.on('messageCreate', async (message) => {
     try {
       const argSongName = args.join(' ');
 
-      if (message.author.id === '332745722258653184') {
+      if (message.author.id === '341345652145520640') {
         return message.channel.send(`Oigan al otro`, { tts: true });
       }
 
