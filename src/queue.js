@@ -44,8 +44,6 @@ class Queue {
         oldState.status !== AudioPlayerStatus.Idle
       ) {
         this.processQueue();
-      } else if (newState.status === AudioPlayerStatus.Playing) {
-        console.log(newState.resource);
       }
     });
 

@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ./src -L",
+    "start": "DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config ./src",
+    "start:prod": "DOTENV_CONFIG_PATH=.env.prod node -r dotenv/config ./src",
+    "dev": "nodemon --exec \"npm start\"",
     "test": "jest ./src/tests",
     "lint": "eslint .",
     "build:prod": "node scripts/build/build-prod.js"

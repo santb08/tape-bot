@@ -1,3 +1,4 @@
+require('dotenv').config()
 // @packages
 const { Client, Intents } = require('discord.js');
 const Bot = require('./bot');
@@ -84,4 +85,4 @@ client.on('messageCreate', async (message) => {
 //     process.on(eventType, cleanUpServer.bind(null, eventType));
 // });
 
-client.login('ODgzOTAwNzA5MTg2MTg3MjY0.YTQqrw.3KVsGvWG8TnGiuyhijgIg2bmlCA');
+client.login(process.env.clientToken);
