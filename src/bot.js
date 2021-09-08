@@ -9,16 +9,11 @@ const {
   createAudioResource,
   entersState,
   joinVoiceChannel,
+  VoiceConnectionDisconnectReason,
 } = require('@discordjs/voice');
-const SpotifyWebApi = require('spotify-web-api-node');
 const { IS_SPOTIFY_URL } = require('./util/regexp');
-
-// @constants
-const defaultQueue = {
-  songs: [],
-  voiceChannel: null,
-  audioPlayer: null,
-};
+const { mapSpotifyUrlToYtdl } = require('./util/spotify');
+const Queue = require('./queue');
 
 class Bot {
   constructor() {
@@ -54,49 +49,44 @@ class Bot {
    * @param {String} userId
    * @param {String} song
    */
-  async addSong(guildId, userId, songName) {
+  async addSong(guildId, userId, song) {
     // TODO: Check same voiceChannel in the actual queue
     const queue = this.getQueue(guildId);
+    let possibleSong;
 
-    const ytSearchQuery = songName;
-
-    if (IS_SPOTIFY_URL(ytSearchQuery)) {
-      const songName = SpotifyWebApi.getSongDetails(songName);
+    if (IS_SPOTIFY_URL(song)) {
+      possibleSong = await mapSpotifyUrlToYtdl(song);
+    } else {
+      const { items } = await ytsr(song, { limit: 1, type: 'video' });
+      possibleSong = items[0];
     }
-
-    const { items } = await ytsr(songName, { limit: 1, type: 'video' });
-    const [possibleSong] = items;
 
     // TODO: Handle possible match args
     if (!possibleSong) {
       throw Error('Song not found');
     }
 
-    const song = {
+    const songObj = {
       title: possibleSong.title,
       url: possibleSong.url,
     };
 
     if (!queue) {
-      const newQueue = this.serverQueues
-        .set(guildId, {
-          ...defaultQueue,
-          songs: [],
-        })
-        .get(guildId);
+      const newQueue = new Queue(guildId);
+      this.serverQueues.set(guildId, newQueue);
 
-      newQueue.songs.push({
-        ...song,
+      newQueue.addSong({
+        ...songObj,
         userId,
       });
     } else {
-      queue.songs.push({
+      queue.addSong({
+        ...songObj,
         userId,
-        ...song,
       });
     }
 
-    return song;
+    return songObj;
   }
 
   /**
@@ -111,8 +101,7 @@ class Bot {
       guildId: voiceChannel.guild.id,
       adapterCreator: voiceChannel.guild.voiceAdapterCreator,
     });
-    queue.connection = voiceConnection;
-    this.serverQueues.set(voiceChannel.guild.id, queue);
+    queue.connectToVoiceChannel(voiceConnection);
 
     try {
       entersState(voiceConnection, VoiceConnectionStatus.Ready, 20e3);
@@ -129,34 +118,34 @@ class Bot {
             newState.closeCode === 4014
           ) {
             /*
-                            If the WebSocket closed with a 4014 code, this means that we should not manually attempt to reconnect,
-                            but there is a chance the connection will recover itself if the reason of the disconnect was due to
-                            switching voice channels. This is also the same code for the bot being kicked from the voice channel,
-                            so we allow 5 seconds to figure out which scenario it is. If the bot has been kicked, we should destroy
-                            the voice connection.
-                        */
+              If the WebSocket closed with a 4014 code, this means that we should not manually attempt to reconnect,
+              but there is a chance the connection will recover itself if the reason of the disconnect was due to
+              switching voice channels. This is also the same code for the bot being kicked from the voice channel,
+              so we allow 5 seconds to figure out which scenario it is. If the bot has been kicked, we should destroy
+              the voice connection.
+            */
             try {
               await entersState(
-                this.voiceConnection,
+                voiceConnection,
                 VoiceConnectionStatus.Connecting,
                 5_000,
               );
               // Probably moved voice channel
             } catch {
-              this.voiceConnection.destroy();
+              voiceConnection.destroy();
               // Probably removed from voice channel
             }
-          } else if (this.voiceConnection.rejoinAttempts < 5) {
+          } else if (voiceConnection.rejoinAttempts < 5) {
             /*
-                            The disconnect in this case is recoverable, and we also have <5 repeated attempts so we will reconnect.
-                        */
-            await wait((this.voiceConnection.rejoinAttempts + 1) * 5_000);
-            this.voiceConnection.rejoin();
+              The disconnect in this case is recoverable, and we also have <5 repeated attempts so we will reconnect.
+            */
+            await wait((voiceConnection.rejoinAttempts + 1) * 5_000);
+            voiceConnection.rejoin();
           } else {
             /*
-                            The disconnect in this case may be recoverable, but we have no more remaining attempts - destroy.
-                        */
-            this.voiceConnection.destroy();
+              The disconnect in this case may be recoverable, but we have no more remaining attempts - destroy.
+            */
+            voiceConnection.destroy();
           }
         } else if (newState.status === VoiceConnectionStatus.Destroyed) {
           this.stop(voiceChannel.guildId);
@@ -176,14 +165,8 @@ class Bot {
         }
       });
 
-      this.play(voiceChannel.guildId, queue.songs[0]);
+      this.startPlaying(voiceChannel.guildId, queue.songs[0]);
 
-      // await entersState(
-      //     voiceConnection,
-      //     VoiceConnectionStatus.Ready,
-      //     5_000
-      // );
-      // voiceConnection.on('error', console.warn);
       return voiceConnection;
     } catch (error) {
       voiceConnection.destroy();
@@ -191,67 +174,28 @@ class Bot {
     }
   }
 
-  async play(guildId, song) {
+  async startPlaying(guildId) {
     const serverQueue = this.getQueue(guildId);
+    if (serverQueue.isPlaying) {
+      return;
+    }
+    serverQueue.initializeAudioPlayer();
+  }
 
-    if (!song) {
-      serverQueue.voiceChannel.leave();
-      queue.delete(guildId);
-      throw Error("There's nothing else to play");
+  async processQueue(guildId) {
+    const serverQueue = this.getQueue(guildId);
+    const { songs } = serverQueue;
+    if (!songs.length || audioPlayer.state.status !== AudioPlayerStatus.Idle) {
+      return;
     }
 
-    let audioPlayer;
-    if (serverQueue.audioPlayer) {
-        if (serverQueue.audioPlayer.state.status === AudioPlayerStatus.Playing) {
-            return;
-        }
-
-        audioPlayer = serverQueue.audioPlayer;
-    } else {
-        audioPlayer = new AudioPlayer();
-        serverQueue.connection.subscribe(audioPlayer);
-    }
-
-
-    const playSong = (songUrl) => {
-      console.log('searching', songUrl);
-      const stream = ytdl(songUrl, { filter: 'audioonly' });
-      const songResource = createAudioResource(stream);
-      audioPlayer.play(songResource);
-    };
-
-    playSong(song.url);
-
-    this.updateQueue(guildId, { audioPlayer });
-
-    audioPlayer.on('stateChange', (oldState, newState) => {
-      if (
-        newState.status === AudioPlayerStatus.Idle &&
-        oldState.status === AudioPlayerStatus.Playing
-      ) {
-        const newSongs = serverQueue.songs.slice(1);
-        console.log('New songs', newSongs);
-        this.updateQueue(guildId, { songs: newSongs });
-        if (newSongs.length) {
-          playSong(newSongs[0].url);
-        }
-      } else if (newState.status === AudioPlayerStatus.Playing) {
-        console.log(newState.resource);
-      }
-    });
-
-    audioPlayer.on('error', (error) => {
+    try {
+      const newSongs = serverQueue.songs.slice(1);
+      const song = newSongs[0];
+      const audioPlayer = serverQueue.audioPlayer;
+    } catch (error) {
       console.error(error);
-    });
-
-    // .on('finish', () => {
-    //     console.log('a');
-    //     serverQueue.songs.shift();
-    //     play(guildId, serverQueue.songs[0]);
-    // })
-    // .on('error', error => console.error(error));
-    // dispatcher.setVolumeLogarithmic(1);
-    // serverQueue.textChannel.send(`Start playing: **${song.title}**`);
+    }
   }
 
   stop(guildId) {
@@ -271,16 +215,9 @@ class Bot {
     if (!audioPlayer?.state.status === AudioPlayerStatus.Playing) {
       throw Error("There's nothing to skip");
     }
+    console.log(audioPlayer)
 
     audioPlayer.stop();
-  }
-
-  updateQueue(guildId, props = {}) {
-    const queue = this.serverQueues.get(guildId);
-    this.serverQueues.set(guildId, {
-      ...queue,
-      ...props,
-    });
   }
 }
 
