@@ -85,4 +85,5 @@ client.on('messageCreate', async (message) => {
 //     process.on(eventType, cleanUpServer.bind(null, eventType));
 // });
 
-client.login(process.env.clientToken);
+console.log(process.env.DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
