@@ -1,12 +1,9 @@
 // @packages
-const ytdl = require('ytdl-core');
 const ytsr = require('ytsr');
 const { VoiceChannel } = require('discord.js');
 const {
-  AudioPlayer,
   AudioPlayerStatus,
   VoiceConnectionStatus,
-  createAudioResource,
   entersState,
   joinVoiceChannel,
   VoiceConnectionDisconnectReason,
@@ -139,7 +136,7 @@ class Bot {
             /*
               The disconnect in this case is recoverable, and we also have <5 repeated attempts so we will reconnect.
             */
-            await wait((voiceConnection.rejoinAttempts + 1) * 5_000);
+            // await wait((voiceConnection.rejoinAttempts + 1) * 5_000);
             voiceConnection.rejoin();
           } else {
             /*
@@ -182,22 +179,6 @@ class Bot {
     serverQueue.initializeAudioPlayer();
   }
 
-  async processQueue(guildId) {
-    const serverQueue = this.getQueue(guildId);
-    const { songs } = serverQueue;
-    if (!songs.length || audioPlayer.state.status !== AudioPlayerStatus.Idle) {
-      return;
-    }
-
-    try {
-      const newSongs = serverQueue.songs.slice(1);
-      const song = newSongs[0];
-      const audioPlayer = serverQueue.audioPlayer;
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   stop(guildId) {
     const queue = this.getQueue(guildId);
     if (!queue) return;
@@ -215,7 +196,7 @@ class Bot {
     if (!audioPlayer?.state.status === AudioPlayerStatus.Playing) {
       throw Error("There's nothing to skip");
     }
-    console.log(audioPlayer)
+    console.log(audioPlayer);
 
     audioPlayer.stop();
   }
