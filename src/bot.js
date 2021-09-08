@@ -196,7 +196,6 @@ class Bot {
     if (!audioPlayer?.state.status === AudioPlayerStatus.Playing) {
       throw Error("There's nothing to skip");
     }
-    console.log(audioPlayer);
 
     audioPlayer.stop();
   }
