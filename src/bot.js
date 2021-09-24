@@ -95,7 +95,7 @@ class Bot {
    */
   async joinVoiceChannel(voiceChannel) {
     const queue = this.getQueue(voiceChannel.guild.id);
-    const existingConnection = queue.voiceConnection;
+    const existingConnection = queue.isConnected;
 
     if (existingConnection) {
       if (existingConnection.channelId === voiceChannel.channelId) {

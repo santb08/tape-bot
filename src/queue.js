@@ -3,9 +3,11 @@ const {
   AudioPlayerStatus,
   AudioPlayer,
   createAudioResource,
-  StreamType
+  VoiceConnectionStatus
 } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
+
+const LOOP_QUEUE = 'LOOP_QUEUE';
 
 class Queue {
   constructor(guildId) {
@@ -19,6 +21,10 @@ class Queue {
 
   get songs() {
     return this.songsList;
+  }
+
+  get isConnected() {
+    return this.voiceConnection?.state.status === VoiceConnectionStatus.Ready;
   }
 
   get isPlaying() {
@@ -57,7 +63,7 @@ class Queue {
     });
 
     this.voiceConnection.subscribe(audioPlayer);
-    const firstSong = this.popSong();
+    const firstSong = this.songs[0];
     this.audioPlayer = audioPlayer;
     this.playSong(firstSong.url);
   }
@@ -73,7 +79,12 @@ class Queue {
   }
 
   popSong() {
-    this._currentSong = (this._currentSong + 1) % this.songsList.length;
+    this._currentSong = this._currentSong + 1;
+
+    if (this.loop === LOOP_QUEUE) {
+      this._currentSong = this._currentSong % this.songsList.length;
+    }
+
     return this.songsList[this._currentSong];
   }
 
@@ -87,6 +98,10 @@ class Queue {
     }
 
     const newSong = this.popSong();
+
+    if (!newSong) {
+      return this.audioPlayer.stop();
+    }
 
     try {
       this.playSong(newSong.url);
