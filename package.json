@@ -6,7 +6,7 @@
   "scripts": {
     "start": "DOTENV_CONFIG_PATH=.env.dev node -r dotenv/config ./src",
     "start:prod": "DOTENV_CONFIG_PATH=.env.prod node -r dotenv/config ./src",
-    "dev": "nodemon --exec \"npm start\"",
+    "dev": "nodemon --exec \"npm start\" -L",
     "test": "jest ./src/tests",
     "lint": "eslint .",
     "build:prod": "node scripts/build/build-prod.js"
@@ -36,6 +36,7 @@
     "discord.js": "13.1.0",
     "dotenv": "10.0.0",
     "ffmpeg-static": "^4.4.0",
+    "genius-lyrics-api": "^3.2.0",
     "node": "16.6.1",
     "sodium": "^3.0.2",
     "spotify-url-info": "^2.2.3",

@@ -11,6 +11,7 @@ const {
 const { IS_SPOTIFY_URL } = require('./util/regexp');
 const { mapSpotifyUrlToYtdl } = require('./util/spotify');
 const Queue = require('./queue');
+const { searchSong } = require('./util/genius');
 
 class Bot {
   constructor() {
@@ -64,6 +65,7 @@ class Bot {
     }
 
     const songObj = {
+      author: possibleSong.author.name,
       title: possibleSong.title,
       url: possibleSong.url,
     };
@@ -93,6 +95,16 @@ class Bot {
    */
   async joinVoiceChannel(voiceChannel) {
     const queue = this.getQueue(voiceChannel.guild.id);
+    const existingConnection = queue.voiceConnection;
+
+    if (existingConnection) {
+      if (existingConnection.channelId === voiceChannel.channelId) {
+        return;
+      } else if (queue.isPlaying) {
+        throw Error('Cannot join voice channel while playing in another');
+      }
+    }
+
     const voiceConnection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: voiceChannel.guild.id,
@@ -168,6 +180,21 @@ class Bot {
     } catch (error) {
       voiceConnection.destroy();
       throw error;
+    }
+  }
+
+  async getLyrics(guildId) {
+    const queue = this.getQueue(guildId);
+
+    if (!queue?.currentSong) {
+      throw Error('There is no song playing.');
+    }
+
+    try {
+      const lyrics = await searchSong(queue.currentSong);
+      return lyrics;
+    } catch (error) {
+      throw 'Error';
     }
   }
 

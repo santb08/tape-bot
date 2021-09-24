@@ -3,6 +3,7 @@ const {
   AudioPlayerStatus,
   AudioPlayer,
   createAudioResource,
+  StreamType
 } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 
@@ -13,7 +14,7 @@ class Queue {
     this.guildId = guildId;
     this.queueLock = false;
     this.voiceConnection = null;
-    this.voiceConnection = null;
+    this._currentSong = 0;
   }
 
   get songs() {
@@ -22,6 +23,10 @@ class Queue {
 
   get isPlaying() {
     return this.audioPlayer?.state.status === AudioPlayerStatus.Playing;
+  }
+
+  get currentSong() {
+    return this.songsList[this._currentSong];
   }
 
   addSong(song) {
@@ -62,13 +67,14 @@ class Queue {
       throw Error('An error occurred with audioPlayer');
     }
 
-    const song = ytdl(songUrl, { filter: 'audioonly' });
+    const song = ytdl(songUrl, { filter: 'audioonly', quality: 'lowestaudio' });
     const songStream = createAudioResource(song);
     this.audioPlayer.play(songStream);
   }
 
   popSong() {
-    return this.songsList.shift();
+    this._currentSong = (this._currentSong + 1) % this.songsList.length;
+    return this.songsList[this._currentSong];
   }
 
   processQueue() {

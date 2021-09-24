@@ -3,6 +3,9 @@ require('dotenv').config()
 const { Client, Intents } = require('discord.js');
 const Bot = require('./bot');
 const { settings } = require('./config');
+const Message = require('./message');
+const text = require('./config/text/es.json');
+const { searchSong } = require('./util/genius');
 
 // @constants
 const bot = new Bot();
@@ -24,6 +27,28 @@ client.on('messageCreate', async (message) => {
   if (!message.content.startsWith(settings.prefix)) return;
   const voiceChannel = message.member.voice.channel;
 
+  const args = message.content
+    .slice(settings.prefix.length)
+    .trim()
+    .split(/ +/g);
+  const command = args.shift().toLowerCase();
+
+
+  if (command == 'donate') {
+    return message.reply(new Message({
+      title: text.donate.title,
+      description: text.donate.description,
+    }));
+  }
+
+  if (command == 'help' || command == 'h') {
+    return message.reply(new Message({
+      title: text.help.title,
+      description: text.help.description,
+      timestamp: text.help.timestamp,
+    }));
+  }
+
   if (!voiceChannel) {
     return message.reply('You need to join a voice channel first!');
   }
@@ -36,17 +61,12 @@ client.on('messageCreate', async (message) => {
     );
   }
 
-  const args = message.content
-    .slice(settings.prefix.length)
-    .trim()
-    .split(/ +/g);
-  const command = args.shift().toLowerCase();
-
   if (command === 'play' || command === 'p') {
     try {
       const argSongName = args.join(' ');
+      const blackList = [];
 
-      if (message.author.id === '341345652145520640') {
+      if (blackList.includes(message.author.id)) {
         return message.channel.send(`Oigan al otro`, { tts: true });
       }
 
@@ -78,16 +98,22 @@ client.on('messageCreate', async (message) => {
       message.reply(error.message);
     }
   }
+
+  if (command == 'lyrics' || command == 'ly') {
+    try {
+      const lyrics = await bot.getLyrics(message.guildId);
+      const chunkSize = 50;
+      const chunks = lyrics.split('\n');
+
+      for (let i = 0; i < chunks.length; i += chunkSize) {
+        const chunk = chunks.slice(i, i + chunkSize).join('\n');
+        message.reply(chunk);
+      }
+    } catch (error) {
+      message.reply(error.message);
+    }
+  }
 });
-
-// const cleanUpServer = (eventType) => {
-//     console.log(eventType, 'Logging out...');
-//     client.destroy();
-// };1
-
-// [`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
-//     process.on(eventType, cleanUpServer.bind(null, eventType));
-// });
 
 console.log(process.env.DISCORD_TOKEN);
 client.login(process.env.DISCORD_TOKEN);
