@@ -99,6 +99,9 @@ class Bot {
 
     if (existingConnection) {
       if (existingConnection.channelId === voiceChannel.channelId) {
+        if (!queue.isPlaying) {
+          queue.processQueue();
+        }
         return;
       } else if (queue.isPlaying) {
         throw Error('Cannot join voice channel while playing in another');

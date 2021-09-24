@@ -36,6 +36,7 @@ class Queue {
   }
 
   addSong(song) {
+    console.log('adding', song)
     this.songsList.push(song);
   }
 
@@ -79,13 +80,22 @@ class Queue {
   }
 
   popSong() {
-    this._currentSong = this._currentSong + 1;
+    console.log('Next song');
+    let newCurrentSongIndex = this._currentSong + 1;
 
     if (this.loop === LOOP_QUEUE) {
       this._currentSong = this._currentSong % this.songsList.length;
     }
 
-    return this.songsList[this._currentSong];
+    const newSong = this.songsList[newCurrentSongIndex]
+
+    if (!newSong) {
+      newCurrentSongIndex--;
+    }
+
+    this._currentSong = newCurrentSongIndex;
+
+    return newSong;
   }
 
   processQueue() {
