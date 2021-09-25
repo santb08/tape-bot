@@ -12,6 +12,7 @@ const { IS_SPOTIFY_URL } = require('./util/regexp');
 const { mapSpotifyUrlToYtdl } = require('./util/spotify');
 const Queue = require('./queue');
 const { searchSong } = require('./util/genius');
+const Song = require('./song');
 
 class Bot {
   constructor() {
@@ -50,42 +51,45 @@ class Bot {
   async addSong(guildId, userId, song) {
     // TODO: Check same voiceChannel in the actual queue
     const queue = this.getQueue(guildId);
+    const playlistSongs = [];
     let possibleSong;
 
     if (IS_SPOTIFY_URL(song)) {
-      possibleSong = await mapSpotifyUrlToYtdl(song);
+      const spotifyResponse = await mapSpotifyUrlToYtdl(song);
+      if (Array.isArray(spotifyResponse)) {
+        playlistSongs.push(...spotifyResponse);
+      } else {
+        possibleSong = spotifyResponse;
+      }
     } else {
       const { items } = await ytsr(song, { limit: 1, type: 'video' });
       possibleSong = items[0];
+
+      possibleSong = new Song(
+        possibleSong.title,
+        possibleSong.author.name,
+        possibleSong.url,
+      )
     }
 
-    // TODO: Handle possible match args
-    if (!possibleSong) {
+    if (!possibleSong && !playlistSongs.length) {
       throw Error('Song not found');
     }
-
-    const songObj = {
-      author: possibleSong.author.name,
-      title: possibleSong.title,
-      url: possibleSong.url,
-    };
 
     if (!queue) {
       const newQueue = new Queue(guildId);
       this.serverQueues.set(guildId, newQueue);
 
-      newQueue.addSong({
-        ...songObj,
-        userId,
-      });
+      if (playlistSongs?.length)
+        newQueue.addSong(...playlistSongs);
+
+      if (possibleSong)
+        newQueue.addSong(possibleSong);
     } else {
-      queue.addSong({
-        ...songObj,
-        userId,
-      });
+      queue.addSong(possibleSong);
     }
 
-    return songObj;
+    return playlistSongs[0] ?? possibleSong;
   }
 
   /**

@@ -35,9 +35,9 @@ class Queue {
     return this.songsList[this._currentSong];
   }
 
-  addSong(song) {
-    console.log('adding', song)
-    this.songsList.push(song);
+  addSong(...songs) {
+    console.log('adding', songs)
+    this.songsList.push(...songs);
   }
 
   connectToVoiceChannel(voiceConnection) {

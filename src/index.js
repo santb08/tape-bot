@@ -77,7 +77,7 @@ client.on('messageCreate', async (message) => {
       const song = await bot.addSong(message.guildId, null, argSongName);
       bot.joinVoiceChannel(voiceChannel);
 
-      message.reply(`Added **${song.title}** to the queue!`);
+      message.reply(`Added **${song.title}** to the queue! `, text.trySpotify);
     } catch (error) {
       message.reply(error.message);
     }
@@ -113,6 +113,16 @@ client.on('messageCreate', async (message) => {
       message.reply(error.message);
     }
   }
+});
+
+
+const cleanUpServer = (eventType) => {
+     console.log(eventType, 'Logging out...');
+    client.destroy();
+};
+
+[`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
+    process.on(eventType, cleanUpServer.bind(null, eventType));
 });
 
 console.log(process.env.DISCORD_TOKEN);

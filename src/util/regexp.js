@@ -3,7 +3,7 @@ const IS_YOUTUBE_URL = (str) =>
   /^https?:\/\/(www\.)?youtu\.be\/\w+$/.test(str);
 
 const IS_SPOTIFY_URL = (str) =>
-  /^https?:\/\/(www\.)?open\.spotify\.com\/track/.test(str);
+  /^https?:\/\/(www\.)?open\.spotify\.com\//.test(str);
 
 module.exports = {
   IS_SPOTIFY_URL,
