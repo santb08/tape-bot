@@ -115,15 +115,14 @@ client.on('messageCreate', async (message) => {
   }
 });
 
+// const cleanUpServer = (eventType) => {
+//      console.log(eventType, 'Logging out...');
+//     client.destroy();
+// };
 
-const cleanUpServer = (eventType) => {
-     console.log(eventType, 'Logging out...');
-    client.destroy();
-};
+// [`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
+//     process.on(eventType, cleanUpServer.bind(null, eventType));
+// });
 
-[`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
-    process.on(eventType, cleanUpServer.bind(null, eventType));
-});
-
-console.log(process.env.DISCORD_TOKEN);
+// console.log(process.env.DISCORD_TOKEN);
 client.login(process.env.DISCORD_TOKEN);
