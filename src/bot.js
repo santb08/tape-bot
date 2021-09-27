@@ -27,6 +27,15 @@ class Bot {
     this.client = client;
   }
 
+  clearQueue(guildId) {
+    const queue = this.serverQueues.get(guildId);
+    if (!queue) {
+      throw Error('Queue not found');
+    }
+
+    queue.clear();
+  }
+
   getQueue(guildId) {
     return this.serverQueues.get(guildId);
   }
@@ -148,6 +157,7 @@ class Bot {
               );
               // Probably moved voice channel
             } catch {
+              queue.clear();
               voiceConnection.destroy();
               // Probably removed from voice channel
             }

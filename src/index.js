@@ -61,6 +61,14 @@ client.on('messageCreate', async (message) => {
     );
   }
 
+  if (command === 'clear' || command == 'c') {
+    try {
+      bot.clearQueue(message.guildId);
+    } catch (error) {
+      message.reply(eror.message);
+    }
+  }
+
   if (command === 'play' || command === 'p') {
     try {
       const argSongName = args.join(' ');

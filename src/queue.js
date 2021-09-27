@@ -40,6 +40,11 @@ class Queue {
     this.songsList.push(...songs);
   }
 
+  clear() {
+    this.songsList = [];
+    this._currentSong = -1;
+  }
+
   connectToVoiceChannel(voiceConnection) {
     this.voiceConnection = voiceConnection;
   }
@@ -64,7 +69,8 @@ class Queue {
     });
 
     this.voiceConnection.subscribe(audioPlayer);
-    const firstSong = this.songs[0];
+    this._currentSong = 0;
+    const firstSong = this.songs[this._currentSong];
     this.audioPlayer = audioPlayer;
     this.playSong(firstSong.url);
   }
