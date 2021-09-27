@@ -1,7 +1,7 @@
 {
     "help": {
         "title": "List of commands",
-        "description": "**Donate** Show available links for helping to support this project:)\n**Help** Show this help\n**Lyrics** Show the current song lyrics (Powered by Genius API)\n**Pause (TBD)** Pauses the current song\n**Play** <song> Play a song\n**Queue** Shows the current queue\n**Skip** skips the current song",
+        "description": "**Clear** Clear the current's server queue\n**Donate** Show available links for helping to support this project:)\n**Help** Show this help\n**Lyrics** Show the current song lyrics (Powered by Genius API)\n**Pause (TBD)** Pauses the current song\n**Play** <song> Play a song\n**Queue** Shows the current queue\n**Skip** skips the current song",
         "fields": [
             {
                 "name": "Author's GitHub page",
