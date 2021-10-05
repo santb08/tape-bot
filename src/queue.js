@@ -80,7 +80,11 @@ class Queue {
       throw Error('An error occurred with audioPlayer');
     }
 
-    const song = ytdl(songUrl, { filter: 'audioonly', quality: 'lowestaudio' });
+    const song = ytdl(songUrl, {
+      filter: 'audioonly',
+      quality: 'lowestaudio',
+      highWaterMark: 1024 * 1024 * 32
+    });
     const songStream = createAudioResource(song);
     this.audioPlayer.play(songStream);
   }
